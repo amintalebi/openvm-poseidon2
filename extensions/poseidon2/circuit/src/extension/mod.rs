@@ -71,6 +71,12 @@ impl InitFileGenerator for Poseidon2Rv32Config {}
 #[derive(Clone)]
 pub struct Poseidon2Rv32CpuBuilder;
 
+impl Default for Poseidon2Rv32CpuBuilder {
+    fn default() -> Self {
+        Self
+    }
+}
+
 impl<SC, E> VmBuilder<E> for Poseidon2Rv32CpuBuilder
 where
     SC: StarkProtocolConfig,

@@ -13,6 +13,7 @@ members = [
   "extensions/poseidon2/transpiler",
   "extensions/poseidon2/circuit",
   "guest-libs/poseidon2",
+  "examples/poseidon2",
 ]
 
 [workspace.dependencies]
