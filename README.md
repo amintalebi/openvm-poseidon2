@@ -1,5 +1,11 @@
 # openvm-poseidon2
 
+[![CI](https://img.shields.io/github/actions/workflow/status/amintalebi/openvm-poseidon2/ci.yml?branch=main&label=build&style=flat-square)](https://github.com/amintalebi/openvm-poseidon2/actions)
+[![codecov](https://img.shields.io/codecov/c/github/amintalebi/openvm-poseidon2?style=flat-square)](https://codecov.io/gh/amintalebi/openvm-poseidon2)
+
+> **Status: under active development — not production ready.** The API and behavior may change
+> without notice, and the crate has not been audited or hardened for production use.
+
 Standalone [OpenVM](https://github.com/openvm-org/openvm) extension and guest library for the
 Poseidon2 hash function.
 
@@ -125,3 +131,9 @@ permutation constrained by the circuit. The KAT test vectors cross-check the two
 ## Development
 
 See `AGENTS.md`.
+
+## TODO
+
+1. **A CUDA prover extension.** `Poseidon2GpuProverExt` does not exist. GPU users get a clear
+   error. This work must come before the extension can go into `standard()`.
+2. **A benchmark**

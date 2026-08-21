@@ -49,3 +49,12 @@ jobs:
         run: cargo nextest run --cargo-profile=fast --profile=heavy
       - name: Example (build -> execute -> prove -> verify)
         run: cargo run --profile fast -p poseidon2-example
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+      - name: Collect coverage
+        run: cargo llvm-cov --profile fast --lcov --output-path lcov.info
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: lcov.info
+          token: ${{ secrets.CODECOV_TOKEN }}
