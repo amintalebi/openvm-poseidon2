@@ -5,7 +5,7 @@ version = "0.0.0"
 edition = "2021"
 
 [dependencies]
-openvm = { path = "../../../../crates/toolchain/openvm" }
+openvm = "2.0.2"
 openvm-poseidon2 = { path = "../../" }
 
 serde = { version = "1.0", default-features = false, features = [

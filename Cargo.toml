@@ -8,12 +8,62 @@ repository = "https://github.com/amintalebi/openvm-poseidon2"
 license = "MIT OR Apache-2.0"
 
 [workspace]
-members = []
+members = [
+  "extensions/poseidon2/guest",
+  "extensions/poseidon2/transpiler",
+  "extensions/poseidon2/circuit",
+  "guest-libs/poseidon2",
+]
+
+[workspace.dependencies]
+# openvm core (crates.io)
+openvm-build = { version = "2.0.2", default-features = false }
+openvm-circuit = { version = "2.0.2", default-features = false }
+openvm-circuit-derive = { version = "2.0.2", default-features = false }
+openvm-circuit-primitives = { version = "2.0.2", default-features = false }
+openvm-circuit-primitives-derive = { version = "2.0.2", default-features = false }
+openvm-cpu-backend = { version = "2.0.1", default-features = false }
+openvm-instructions = { version = "2.0.2", default-features = false }
+openvm-instructions-derive = { version = "2.0.2", default-features = false }
+openvm-platform = { version = "2.0.2", default-features = false }
+openvm-poseidon2-air = { version = "2.0", default-features = false }
+openvm-rv32im-circuit = { version = "2.0.2", default-features = false }
+openvm-rv32im-transpiler = { version = "2.0.2", default-features = false }
+openvm-sdk = { version = "2.0.2", default-features = false }
+openvm-stark-backend = { version = "2.0", default-features = false }
+openvm-stark-sdk = { version = "2.0", default-features = false }
+openvm-transpiler = { version = "2.0.2", default-features = false }
+openvm = { version = "2.0.2", default-features = false }
+
+# own crates (path)
+openvm-poseidon2 = { path = "guest-libs/poseidon2", default-features = false }
+openvm-poseidon2-circuit = { path = "extensions/poseidon2/circuit", default-features = false }
+openvm-poseidon2-guest = { path = "extensions/poseidon2/guest", default-features = false }
+openvm-poseidon2-transpiler = { path = "extensions/poseidon2/transpiler", default-features = false }
+
+# third-party
+dashmap = "6.1.0"
+derive-new = "0.6.0"
+derive_more = { version = "1.0.0", features = ["display"], default-features = false }
+eyre = "0.6.12"
+itertools = { version = "0.14.0", default-features = false }
+p3-baby-bear = { version = "=0.4.3", default-features = false }
+p3-field = { version = "=0.4.3", default-features = false }
+p3-symmetric = { version = "=0.4.3", default-features = false }
+rand = { version = "0.9.2", default-features = false, features = [
+    "std",
+    "os_rng",
+    "std_rng",
+] }
+rrs-lib = "0.1.0"
+rustc-hash = "2.0.0"
+serde = { version = "1.0.201", default-features = false, features = ["derive"] }
+strum = { version = "0.26.3", features = ["derive"] }
 
 # Optimized dev profile used for tests (see AGENTS.md)
 [profile.fast]
+inherits = "dev"
 opt-level = 1
-debug = true
 debug-assertions = true
 incremental = true
 
