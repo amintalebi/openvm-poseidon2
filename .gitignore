@@ -2,7 +2,7 @@
 
 # Root Cargo.lock is committed for reproducible CI; nested (guest program) locks are not.
 **/Cargo.lock
-!./Cargo.lock
+!Cargo.lock
 
 # Guest programs and generated init files
 **/openvm/
