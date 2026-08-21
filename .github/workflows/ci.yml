@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["**"]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned nightly (rustfmt)
+        run: |
+          rustup toolchain install nightly-2026-01-18 --profile minimal --component rustfmt
+      - name: Format check
+        run: cargo +nightly-2026-01-18 fmt --all -- --check
+      - name: Install stable
+        uses: dtolnay/rust-toolchain@stable
+      - name: Clippy
+        run: cargo clippy --all-targets -- -D warnings
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install stable
+        uses: dtolnay/rust-toolchain@stable
+      - name: Install pinned nightly + rust-src (guest builds)
+        run: |
+          rustup toolchain install nightly-2026-01-18 --profile minimal --component rust-src
+      - name: Install nextest
+        uses: taiki-e/install-action@nextest
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+      - name: Build workspace
+        run: cargo build --profile fast
+      - name: Circuit unit tests
+        run: cargo nextest run --cargo-profile=fast -p openvm-poseidon2-circuit
+      - name: Guest-lib integration tests (guest -> execute)
+        working-directory: guest-libs/poseidon2
+        run: cargo nextest run --cargo-profile=fast --profile=heavy
+      - name: Example (build -> execute -> prove -> verify)
+        run: cargo run --profile fast -p poseidon2-example

@@ -1,0 +1,33 @@
+name: Publish
+
+on:
+  push:
+    tags: ["v*"]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  publish:
+    name: Publish crates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install stable
+        uses: dtolnay/rust-toolchain@stable
+      - name: Publish openvm-poseidon2-guest
+        run: cargo publish -p openvm-poseidon2-guest
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+      - name: Publish openvm-poseidon2-transpiler
+        run: cargo publish -p openvm-poseidon2-transpiler
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+      - name: Publish openvm-poseidon2-circuit
+        run: cargo publish -p openvm-poseidon2-circuit
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+      - name: Publish openvm-poseidon2
+        run: cargo publish -p openvm-poseidon2
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
