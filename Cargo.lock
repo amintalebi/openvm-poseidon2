@@ -2497,6 +2497,7 @@ name = "openvm-poseidon2"
 version = "2.0.2"
 dependencies = [
  "eyre",
+ "openvm-build",
  "openvm-circuit",
  "openvm-instructions",
  "openvm-poseidon2-circuit",

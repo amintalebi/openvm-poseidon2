@@ -1,3 +1,5 @@
+mod common;
+
 #[cfg(test)]
 mod tests {
     use std::fs;
@@ -15,9 +17,10 @@ mod tests {
     };
     use openvm_sdk::StdIn;
     use openvm_stark_sdk::p3_baby_bear::BabyBear;
-    use openvm_toolchain_tests::{build_example_program_at_path, get_programs_dir};
     use openvm_transpiler::{transpiler::Transpiler, FromElf};
     use rand::RngCore;
+
+    use crate::common::{build_example_program_at_path, programs_dir};
 
     type F = BabyBear;
 
@@ -56,11 +59,7 @@ mod tests {
 
     fn test_poseidon2_base(prove: bool) -> Result<()> {
         let config = Poseidon2Rv32Config::default();
-        let elf = build_example_program_at_path(
-            get_programs_dir!("tests/programs"),
-            "poseidon2",
-            &config,
-        )?;
+        let elf = build_example_program_at_path(programs_dir(), "poseidon2", &config)?;
         let openvm_exe = VmExe::from_elf(
             elf,
             Transpiler::<F>::default()
