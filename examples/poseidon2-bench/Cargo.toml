@@ -1,0 +1,27 @@
+[package]
+name = "poseidon2-bench"
+description = "CPU vs GPU proving benchmark for the poseidon2 extension"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+eyre = { workspace = true }
+openvm-build = { workspace = true }
+openvm-cuda-backend = { workspace = true, optional = true }
+openvm-instructions = { workspace = true }
+openvm-poseidon2-circuit = { workspace = true }
+openvm-poseidon2-transpiler = { workspace = true }
+openvm-rv32im-transpiler = { workspace = true }
+openvm-sdk = { workspace = true, features = ["parallel"] }
+openvm-stark-sdk = { workspace = true }
+openvm-transpiler = { workspace = true }
+
+[features]
+default = []
+# Enables the GPU proving path (requires an NVIDIA GPU + nvcc).
+cuda = [
+    "dep:openvm-cuda-backend",
+    "openvm-poseidon2-circuit/cuda",
+    "openvm-sdk/cuda",
+]
