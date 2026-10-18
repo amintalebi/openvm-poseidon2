@@ -33,7 +33,7 @@ Build profile: `--profile fast` (opt-level 1) for both backends; CUDA kernels ar
 |------:|-----------------:|-----------------:|--------:|
 | 1000  | 30.08 s          | 6.39 s           | 4.71×   |
 | 5000  | 34.48 s          | 6.29 s           | 5.48×   |
-| 30000 | (running)        | (running)        | —       |
+| 30000 | 72.55 s          | 6.74 s           | 10.76×  |
 
 Notes:
 
@@ -41,4 +41,5 @@ Notes:
   trace columns to the CPU path.
 - CPU prove time is flat between `iters=1000` and `iters=5000` because trace height is padded up to
   a power of two; proof cost is dominated by that padded height, so adding permutes doesn't move the
-  needle until it crosses the next height boundary.
+  needle until it crosses the next height boundary. Once it does (between 5000 and 30000) the CPU
+  cost roughly doubles while the GPU stays flat, so the speedup widens (5.5× → 10.8×).
