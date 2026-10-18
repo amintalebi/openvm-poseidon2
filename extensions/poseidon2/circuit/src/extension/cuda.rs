@@ -17,12 +17,11 @@ use openvm_circuit::{
 use openvm_cuda_backend::{BabyBearPoseidon2GpuEngine as GpuBabyBearPoseidon2Engine, GpuBackend};
 use openvm_rv32im_circuit::Rv32ImGpuProverExt;
 use openvm_poseidon2_air::p3_baby_bear::BabyBear;
-use openvm_stark_backend::StarkEngine;
 use openvm_stark_sdk::config::baby_bear_poseidon2::BabyBearPoseidon2Config;
 
 use super::*;
 use crate::{
-    cuda::{Poseidon2PeripheryChipGpu, Poseidon2PermuteChipGpu},
+    cuda::{Poseidon2PeripheryChipGpu, Poseidon2PermuteChipGpu, SharedPoseidon2RecordsGpu},
     periphery::Poseidon2PeripheryAir,
     permute::Poseidon2PermuteAir,
 };
@@ -48,7 +47,7 @@ impl VmProverExtension<GpuBabyBearPoseidon2Engine, DenseRecordArena, Poseidon2>
         // is done _last_: chips are trace-generated in reverse insertion order, and the adapter
         // chip's kernel records the input states the periphery chip then consumes.
         inventory.next_air::<Poseidon2PeripheryAir<BabyBear>>()?;
-        let shared_records = Default::default();
+        let shared_records: SharedPoseidon2RecordsGpu = Default::default();
         let periphery =
             Poseidon2PeripheryChipGpu::new(shared_records.clone(), device_ctx);
         inventory.add_periphery_chip(Arc::new(periphery));

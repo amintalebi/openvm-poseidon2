@@ -24,6 +24,12 @@ use openvm_sdk::{
     config::{AggregationSystemParams, AppConfig},
     GenericSdk, StdIn, F,
 };
+// The CPU Stark engine: under `cuda` the SDK re-exports the CPU engine as
+// `BabyBearPoseidon2Engine`; otherwise it is `DefaultStarkEngine`.
+#[cfg(feature = "cuda")]
+use openvm_sdk::BabyBearPoseidon2Engine as CpuEngine;
+#[cfg(not(feature = "cuda"))]
+use openvm_sdk::DefaultStarkEngine as CpuEngine;
 use openvm_stark_sdk::config::{app_params_with_100_bits_security, MAX_APP_LOG_STACKED_HEIGHT};
 use openvm_transpiler::{transpiler::Transpiler, FromElf};
 
@@ -94,9 +100,8 @@ fn timed<F: FnOnce() -> Result<()>>(f: F) -> Result<std::time::Duration> {
 /// Run the full CPU pipeline and time execute + prove.
 fn run_cpu(iters: u32) -> Result<Times> {
     use openvm_poseidon2_circuit::Poseidon2Rv32CpuBuilder;
-    use openvm_sdk::DefaultStarkEngine;
 
-    let sdk = GenericSdk::<DefaultStarkEngine, Poseidon2Rv32CpuBuilder>::new_without_transpiler(
+    let sdk = GenericSdk::<CpuEngine, Poseidon2Rv32CpuBuilder>::new_without_transpiler(
         app_config(),
         AggregationSystemParams::default(),
     )?;
@@ -117,7 +122,7 @@ fn run_cpu(iters: u32) -> Result<Times> {
     let prove = timed(|| {
         let (proof, baseline) = sdk.prove(exe.clone(), stdin_for(iters), &[])?;
         let (_agg_pk, agg_vk) = sdk.agg_keygen();
-        GenericSdk::<DefaultStarkEngine, Poseidon2Rv32CpuBuilder>::verify_proof(
+        GenericSdk::<CpuEngine, Poseidon2Rv32CpuBuilder>::verify_proof(
             agg_vk, baseline, &proof,
         )?;
         Ok(())

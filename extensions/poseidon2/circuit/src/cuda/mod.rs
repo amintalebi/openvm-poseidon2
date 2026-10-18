@@ -20,11 +20,12 @@ use openvm_poseidon2_air::POSEIDON2_WIDTH;
 use openvm_stark_backend::prover::AirProvingContext;
 
 use crate::{
-    cuda::cuda_abi,
     periphery::Poseidon2PeripheryCols,
     permute::columns::NUM_POSEIDON2_PERMUTE_OP_COLS,
     permute::trace::Poseidon2PermuteRecord,
 };
+
+mod cuda_abi;
 
 /// Shared device records buffer produced by the adapter chip and consumed by the periphery chip.
 /// The adapter is trace-generated *first* (it is inserted after the periphery, and chips are
@@ -117,7 +118,7 @@ impl Chip<DenseRecordArena, GpuBackend> for Poseidon2PeripheryChipGpu {
         let (records, num_records) = {
             let mut shared = self.shared_records.lock().unwrap();
             match shared.records.take() {
-                Some(r) => (r, shared.num_records),
+                Some(r) => (Some(r), shared.num_records),
                 None => (None, 0),
             }
         };
