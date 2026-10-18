@@ -28,11 +28,28 @@ use openvm_stark_sdk::config::{
 };
 use openvm_transpiler::{transpiler::Transpiler, FromElf};
 
-fn iters_from_args() -> u32 {
-    std::env::args()
-        .nth(1)
-        .and_then(|s| s.parse().ok())
-        .unwrap_or(20_000)
+fn parse_args() -> (u32, Mode) {
+    let mut iters = 20_000u32;
+    let mut mode = Mode::Both;
+    for arg in std::env::args().skip(1) {
+        match arg.as_str() {
+            "--cpu" => mode = Mode::Cpu,
+            "--gpu" => mode = Mode::Gpu,
+            _ => {
+                if let Ok(v) = arg.parse::<u32>() {
+                    iters = v;
+                }
+            }
+        }
+    }
+    (iters, mode)
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum Mode {
+    Cpu,
+    Gpu,
+    Both,
 }
 
 fn app_config() -> AppConfig<Poseidon2Rv32Config> {
@@ -55,34 +72,35 @@ struct Times {
 }
 
 fn main() -> Result<()> {
-    let iters = iters_from_args();
-    println!("=== Poseidon2 benchmark: iters = {iters} ===\n");
+    let (iters, mode) = parse_args();
+    println!("=== Poseidon2 benchmark: iters = {iters} (mode = {mode:?}) ===\n");
 
-    let cpu = run_cpu(iters)?;
+    let mut cpu_time: Option<std::time::Duration> = None;
+    #[allow(unused_mut)] // only assigned when the `cuda` feature is enabled
+    let mut gpu_time: Option<std::time::Duration> = None;
 
-    #[cfg(feature = "cuda")]
-    let gpu = run_gpu(iters)?;
-    #[cfg(feature = "cuda")]
-    {
-        println!("--- results ---");
+    if mode == Mode::Cpu || mode == Mode::Both {
+        let cpu = run_cpu(iters)?;
+        cpu_time = Some(cpu.prove);
         println!(
-            "CPU prove:  {:>10.2?}   (execute {:.2?})",
+            "CPU prove+verify:  {:>10.2?}   (execute {:.2?})",
             cpu.prove, cpu.execute
         );
+    }
+
+    #[cfg(feature = "cuda")]
+    if mode == Mode::Gpu || mode == Mode::Both {
+        let gpu = run_gpu(iters)?;
+        gpu_time = Some(gpu.prove);
         println!(
-            "GPU prove:  {:>10.2?}   (execute {:.2?})",
+            "GPU prove+verify:  {:>10.2?}   (execute {:.2?})",
             gpu.prove, gpu.execute
         );
-        let speedup = cpu.prove.as_secs_f64() / gpu.prove.as_secs_f64();
-        println!("speedup (CPU/GPU): {speedup:.2}x");
     }
-    #[cfg(not(feature = "cuda"))]
-    {
-        println!("--- results (cpu only; build with --features cuda for the GPU comparison) ---");
-        println!(
-            "CPU prove:  {:10.2?}   (execute {:.2?})",
-            cpu.prove, cpu.execute
-        );
+
+    if let (Some(cpu), Some(gpu)) = (cpu_time, gpu_time) {
+        let speedup = cpu.as_secs_f64() / gpu.as_secs_f64();
+        println!("\nspeedup (CPU/GPU): {speedup:.2}x");
     }
 
     Ok(())

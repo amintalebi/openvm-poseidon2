@@ -167,10 +167,13 @@ at every size, confirming the CUDA tracegen matches the CPU tracegen column-for-
 | 1,000 | 30.08 s | 6.39 s | 4.71× |
 | 5,000 | 34.48 s | 6.29 s | 5.48× |
 | 30,000 | 72.55 s | 6.74 s | 10.76× |
+| 60,000 | 119.30 s | 7.42 s | 16.07× |
+| 120,000 | 189.91 s | 8.67 s | 21.91× |
 
 The GPU advantage grows with workload size: CPU cost tracks the padded (power-of-two) trace height
-and roughly doubles once it crosses a height boundary, while the GPU holds steady — so the speedup
-widens from ~4.7× (small) to ~10.8× (large). Full notes in
+and roughly doubles once it crosses a height boundary (ultimately linear in the proven height, up to
+the VM's ceiling of `2^24` rows), while the GPU stays nearly flat across boundaries — so the speedup
+widens monotonically, from ~4.7× (small) to ~22× at 120k iters. Full notes in
 `examples/poseidon2-bench/RESULTS.md`.
 
 ## Hashing
