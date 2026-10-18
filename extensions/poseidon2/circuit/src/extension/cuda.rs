@@ -67,7 +67,14 @@ impl VmProverExtension<GpuBabyBearPoseidon2Engine, DenseRecordArena, Poseidon2>
 }
 
 /// GPU (`GpuBabyBearPoseidon2Engine`) builder for [`Poseidon2Rv32Config`].
+#[derive(Clone)]
 pub struct Poseidon2Rv32GpuBuilder;
+
+impl Default for Poseidon2Rv32GpuBuilder {
+    fn default() -> Self {
+        Self
+    }
+}
 
 impl VmBuilder<GpuBabyBearPoseidon2Engine> for Poseidon2Rv32GpuBuilder {
     type VmConfig = Poseidon2Rv32Config;

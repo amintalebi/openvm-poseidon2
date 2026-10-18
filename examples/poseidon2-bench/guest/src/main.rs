@@ -9,7 +9,7 @@
 
 extern crate alloc;
 
-use alloc::format;
+use alloc::{format, string::String};
 
 use openvm_poseidon2::{permute, Poseidon2, POSEIDON2_WIDTH};
 
