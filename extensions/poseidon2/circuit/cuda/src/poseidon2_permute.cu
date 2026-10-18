@@ -37,6 +37,14 @@ constexpr size_t POSEIDON2_STATE_BYTES = 64;
 constexpr size_t POSEIDON2_WORD_SIZE = 4;
 constexpr size_t F_NUM_BYTES = 4;
 
+// Default BabyBear Poseidon2 with one sbox register (matches SBOX_REGISTERS = 1).
+using Poseidon2Row = poseidon2::Poseidon2Row<
+    POSEIDON2_WIDTH,
+    Poseidon2ParamsS1::SBOX_DEGREE,
+    Poseidon2ParamsS1::SBOX_REGS,
+    Poseidon2ParamsS1::HALF_FULL_ROUNDS,
+    Poseidon2ParamsS1::PARTIAL_ROUNDS>;
+
 // Must match the Rust `#[repr(C)] Poseidon2PermuteRecord` exactly (148 bytes).
 struct Poseidon2PermuteRecord {
     uint32_t pc;

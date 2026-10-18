@@ -9,6 +9,7 @@
 //!   cargo run --release -p poseidon2-bench --features cuda -- [iters]  # CPU + GPU comparison
 
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::time::Instant;
 
 use eyre::Result;
@@ -57,8 +58,7 @@ fn main() -> Result<()> {
     let iters = iters_from_args();
     println!("=== Poseidon2 benchmark: iters = {iters} ===\n");
 
-    let mut cpu = run_cpu(iters)?;
-    cpu.prove = timed(|| cpu.prove.elapsed()); // placeholder replaced below
+    let cpu = run_cpu(iters)?;
 
     #[cfg(feature = "cuda")]
     let gpu = run_gpu(iters)?;
@@ -79,7 +79,7 @@ fn main() -> Result<()> {
     #[cfg(not(feature = "cuda"))]
     {
         println!("--- results (cpu only; build with --features cuda for the GPU comparison) ---");
-        println!("CPU prove:  {:?.2?}   (execute {:.2?})", cpu.prove, cpu.execute);
+        println!("CPU prove:  {:10.2?}   (execute {:.2?})", cpu.prove, cpu.execute);
     }
 
     Ok(())
@@ -100,7 +100,15 @@ fn run_cpu(iters: u32) -> Result<Times> {
         app_config(),
         AggregationSystemParams::default(),
     )?;
-    let exe = build_exe(&sdk)?;
+    let exe = Arc::new(VmExe::from_elf(sdk.build(
+            Default::default(),
+            guest_dir(),
+            &Some(TargetFilter {
+                name: "poseidon2-bench-guest".to_string(),
+                kind: "bin".to_string(),
+            }),
+            None,
+        )?, transpiler())?);
 
     let execute = timed(|| {
         sdk.execute(exe.clone(), stdin_for(iters))?;
@@ -128,7 +136,15 @@ fn run_gpu(iters: u32) -> Result<Times> {
         app_config(),
         AggregationSystemParams::default(),
     )?;
-    let exe = build_exe(&sdk)?;
+    let exe = Arc::new(VmExe::from_elf(sdk.build(
+            Default::default(),
+            guest_dir(),
+            &Some(TargetFilter {
+                name: "poseidon2-bench-guest".to_string(),
+                kind: "bin".to_string(),
+            }),
+            None,
+        )?, transpiler())?);
 
     let execute = timed(|| {
         sdk.execute(exe.clone(), stdin_for(iters))?;
@@ -144,22 +160,16 @@ fn run_gpu(iters: u32) -> Result<Times> {
     Ok(Times { execute, prove })
 }
 
-/// Build the guest ELF and transpile it into a `VmExe`.
-fn build_exe<VB>(sdk: &GenericSdk<?, VB>) -> Result<std::sync::Arc<VmExe>> {
-    let elf = sdk.build(
-        Default::default(),
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("guest"),
-        &Some(TargetFilter {
-            name: "poseidon2-bench-guest".to_string(),
-            kind: "bin".to_string(),
-        }),
-        None,
-    )?;
-    let transpiler = Transpiler::<F>::default()
+/// Directory of the benchmark guest package.
+fn guest_dir() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("guest")
+}
+
+/// Build a transpiler with the poseidon2 + rv32im + io extensions.
+fn transpiler() -> Transpiler<F> {
+    Transpiler::<F>::default()
         .with_extension(Poseidon2TranspilerExtension)
         .with_extension(Rv32ITranspilerExtension)
         .with_extension(Rv32MTranspilerExtension)
-        .with_extension(Rv32IoTranspilerExtension);
-    let exe = VmExe::from_elf(elf, transpiler)?;
-    Ok(std::sync::Arc::new(exe))
+        .with_extension(Rv32IoTranspilerExtension)
 }

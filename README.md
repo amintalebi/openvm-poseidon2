@@ -116,6 +116,36 @@ cargo run --profile fast -p poseidon2-example
 Builds the guest in `examples/poseidon2/guest`, executes it (it asserts on its own hashes), then
 proves and verifies the whole execution.
 
+## CUDA (GPU) proving
+
+The extension ships a CUDA prover extension (`Poseidon2GpuProverExt`) and GPU builder
+(`Poseidon2Rv32GpuBuilder`) built on OpenVM's CUDA backend. The two `PERMUTE` AIRs host a
+device-side tracegen:
+
+- `Poseidon2PermuteChipGpu` — the adapter AIR: recomposes the preimage, computes the permutation
+  output on-GPU, and fills the memory-aux, canonicity, and bitwise-lookup columns.
+- `Poseidon2PeripheryChipGpu` — the periphery AIR: expands each (input → output) pair into the full
+  `Poseidon2SubCols` subtrace and stamps the multiplicity.
+
+CUDA kernels are compiled with `openvm-cuda-builder` against the shared headers from
+`openvm-poseidon2-air` / `openvm-circuit-primitives` / `openvm-circuit`. Because the published
+CUDA crates only build inside the [OpenVM monorepo](https://github.com/openvm-org/openvm) (their
+`build.rs` reference monorepo-relative include paths), GPU proving is exercised by integrating this
+extension into that monorepo and building with the `cuda` feature (see `examples/poseidon2-bench`).
+
+Example, with a GPU + nvcc available:
+
+```bash
+cargo run --profile fast -p poseidon2-example --features cuda -- --gpu
+```
+
+A CPU-vs-GPU proving benchmark:
+
+```bash
+cargo run --release -p poseidon2-bench -- [iters]                 # CPU only
+cargo run --release -p poseidon2-bench --features cuda -- [iters]  # CPU + GPU
+```
+
 ## Hashing
 
 The sponge operates on **canonical field elements** (each `< 0x78000001`):
@@ -134,6 +164,6 @@ See `AGENTS.md`.
 
 ## TODO
 
-1. **A CUDA prover extension.** `Poseidon2GpuProverExt` does not exist. GPU users get a clear
-   error. This work must come before the extension can go into `standard()`.
-2. **A benchmark**
+1. **CUDA prover extension.** `Poseidon2GpuProverExt` and `Poseidon2Rv32GpuBuilder` now exist
+   (see "CUDA (GPU) proving"); they lift the old "GPU users get a clear error" limitation.
+2. **A benchmark.** `examples/poseidon2-bench` provides a CPU-vs-GPU proving comparison.

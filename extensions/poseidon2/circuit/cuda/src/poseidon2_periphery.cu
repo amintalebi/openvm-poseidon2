@@ -84,10 +84,7 @@ extern "C" int _poseidon2_periphery_tracegen(
         Poseidon2ParamsS1::SBOX_REGS,
         Poseidon2ParamsS1::HALF_FULL_ROUNDS,
         Poseidon2ParamsS1::PARTIAL_ROUNDS>;
-    static_assert(
-        Poseidon2Row::get_total_size() + 1 == trace_width,
-        "Poseidon2 periphery trace width must be Poseidon2SubCols + mult"
-    );
+    assert(Poseidon2Row::get_total_size() + 1 == trace_width);
 
     auto [grid, block] = kernel_launch_params(trace_height, 256);
     poseidon2_periphery_tracegen_kernel<POSEIDON2_WIDTH, Poseidon2ParamsS1>

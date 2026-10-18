@@ -3445,6 +3445,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "poseidon2-bench"
+version = "0.0.0"
+dependencies = [
+ "eyre",
+ "openvm-build",
+ "openvm-cuda-backend",
+ "openvm-instructions",
+ "openvm-poseidon2-circuit",
+ "openvm-poseidon2-transpiler",
+ "openvm-rv32im-transpiler",
+ "openvm-sdk",
+ "openvm-stark-sdk",
+ "openvm-transpiler",
+]
+
+[[package]]
 name = "poseidon2-example"
 version = "0.0.0"
 dependencies = [
