@@ -146,6 +146,33 @@ cargo run --release -p poseidon2-bench -- [iters]                 # CPU only
 cargo run --release -p poseidon2-bench --features cuda -- [iters]  # CPU + GPU
 ```
 
+### Benchmark results
+
+Measured with `examples/poseidon2-bench` on a Nebius `1gpu-24vcpu-218gb` instance. A guest
+performs `iters` Poseidon2 permutations (`PERMUTE` custom instructions); reported time is
+`sdk.prove(...)` + `verify_proof(...)` (proof generation + verification). The GPU proof **verifies**
+at every size, confirming the CUDA tracegen matches the CPU tracegen column-for-column.
+
+**Hardware**
+
+| | |
+|---|---|
+| CPU | Intel Xeon 6776P, 24 cores, 218 GiB RAM |
+| GPU | NVIDIA RTX PRO 6000 Blackwell Server Edition (sm_120), 97 GB, CUDA 13.0 |
+
+**Times (prove + verify):**
+
+| iters | CPU | GPU | speedup |
+|------:|----:|----:|--------:|
+| 1,000 | 30.08 s | 6.39 s | 4.71× |
+| 5,000 | 34.48 s | 6.29 s | 5.48× |
+| 30,000 | 72.55 s | 6.74 s | 10.76× |
+
+The GPU advantage grows with workload size: CPU cost tracks the padded (power-of-two) trace height
+and roughly doubles once it crosses a height boundary, while the GPU holds steady — so the speedup
+widens from ~4.7× (small) to ~10.8× (large). Full notes in
+`examples/poseidon2-bench/RESULTS.md`.
+
 ## Hashing
 
 The sponge operates on **canonical field elements** (each `< 0x78000001`):
