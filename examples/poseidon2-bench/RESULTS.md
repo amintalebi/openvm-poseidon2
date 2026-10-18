@@ -37,6 +37,31 @@ Build profile: `--profile fast` (opt-level 1) for both backends; CUDA kernels ar
 | 60,000 | 119.30 s | 7.42 s | 16.07× |
 | 120,000 | 189.91 s | 8.67 s | 21.91× |
 
+Grounding on trace height: the VM's single-app proof is hard-capped at `MAX_APP_LOG_STACKED_HEIGHT = 24`
+(2^24 rows) for the 100-bit soundness guarantee. The GPU reaches that ceiling without breaking a sweat:
+
+| iters (GPU only) | approx. height | GPU prove+verify |
+|-----------------:|---------------:|-----------------:|
+| 250,000 | 2^22 | 10.77 s |
+| 500,000 | 2^23 | 16.39 s |
+| 900,000 | 2^24 (max) | 24.03 s |
+
+### Why single-proof GPU utilization is low (and how to raise it)
+
+`nvidia-smi` reports only ~6% util during a single proof. That is not the GPU being idle-limited by
+compute; OpenVM GPU proving is dominated by *tracegen* (memory-bandwidth/launch-bound, host-heavy)
+and the logUp/sumcheck phases, and a single app proof is capped at 2^24 rows by soundness — so the
+big GPU FFTs are short-lived bursts. Measured while batching proofs concurrently (iters=200 000):
+
+| setup | wall time | GPU util |
+|-------|----------:|----------|
+| 1 proof (serial) | 12.5 s | ~6% avg |
+| 4 proofs (parallel) | 16.3 s (4 done) | **39% avg / 100% peak**, ~32 GiB |
+
+i.e. 4 proofs finish in 16.3 s vs ~50 s serial → **~3× prover throughput**, with the GPU peaking at
+100% util. To use the GPU fully, run proofs in parallel (batching), as a prover service does.
+`examples/poseidon2-bench` supports `--gpu`/`--cpu`/`--log-height=N` to drive these runs.
+
 Notes:
 
 - The GPU proof **verifies** at every size, confirming the CUDA tracegen produces byte-identical

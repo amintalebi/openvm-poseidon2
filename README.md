@@ -169,11 +169,17 @@ at every size, confirming the CUDA tracegen matches the CPU tracegen column-for-
 | 30,000 | 72.55 s | 6.74 s | 10.76× |
 | 60,000 | 119.30 s | 7.42 s | 16.07× |
 | 120,000 | 189.91 s | 8.67 s | 21.91× |
+| 900,000 (GPU only) | — | 24.03 s | (at 2^24 height ceiling) |
 
-The GPU advantage grows with workload size: CPU cost tracks the padded (power-of-two) trace height
-and roughly doubles once it crosses a height boundary (ultimately linear in the proven height, up to
-the VM's ceiling of `2^24` rows), while the GPU stays nearly flat across boundaries — so the speedup
-widens monotonically, from ~4.7× (small) to ~22× at 120k iters. Full notes in
+The GPU advantage grows monotonically: CPU cost tracks the padded (power-of-two) trace height and is
+roughly linear in it (up to the VM's single-app ceiling of `2^24` rows, set by
+`MAX_APP_LOG_STACKED_HEIGHT = 24` for the 100-bit soundness target), while the GPU stays near-flat
+across height boundaries — reaching the 2^24 ceiling at 900k iters in ~24 s.
+
+Single-proof GPU utilization is low (~6%): OpenVM proving is dominated by memory/launch-bound
+tracegen and logUp/sumcheck rather than raw FLOPS, and a single proof is soundness-capped at 2^24.
+To use the GPU fully, **batch proofs in parallel**: 4 concurrent proofs of a 2^22-height workload
+finished in 16.3 s vs ~50 s serial (peak GPU util 100%, ~3× prover throughput). Details in
 `examples/poseidon2-bench/RESULTS.md`.
 
 ## Hashing

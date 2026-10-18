@@ -28,21 +28,24 @@ use openvm_stark_sdk::config::{
 };
 use openvm_transpiler::{transpiler::Transpiler, FromElf};
 
-fn parse_args() -> (u32, Mode) {
+fn parse_args() -> (u32, usize, Mode) {
     let mut iters = 20_000u32;
+    let mut log_height = MAX_APP_LOG_STACKED_HEIGHT;
     let mut mode = Mode::Both;
     for arg in std::env::args().skip(1) {
         match arg.as_str() {
             "--cpu" => mode = Mode::Cpu,
             "--gpu" => mode = Mode::Gpu,
             _ => {
-                if let Ok(v) = arg.parse::<u32>() {
+                if let Some(v) = arg.strip_prefix("--log-height=") {
+                    log_height = v.parse().unwrap_or(MAX_APP_LOG_STACKED_HEIGHT);
+                } else if let Ok(v) = arg.parse::<u32>() {
                     iters = v;
                 }
             }
         }
     }
-    (iters, mode)
+    (iters, log_height, mode)
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -52,10 +55,10 @@ enum Mode {
     Both,
 }
 
-fn app_config() -> AppConfig<Poseidon2Rv32Config> {
+fn app_config(log_height: usize) -> AppConfig<Poseidon2Rv32Config> {
     AppConfig::new(
         Poseidon2Rv32Config::default(),
-        app_params_with_100_bits_security(MAX_APP_LOG_STACKED_HEIGHT),
+        app_params_with_100_bits_security(log_height),
     )
 }
 
@@ -72,15 +75,17 @@ struct Times {
 }
 
 fn main() -> Result<()> {
-    let (iters, mode) = parse_args();
-    println!("=== Poseidon2 benchmark: iters = {iters} (mode = {mode:?}) ===\n");
+    let (iters, log_height, mode) = parse_args();
+    println!(
+        "=== Poseidon2 benchmark: iters = {iters}, log_stack_height = {log_height} (mode = {mode:?}) ===\n"
+    );
 
     let mut cpu_time: Option<std::time::Duration> = None;
     #[allow(unused_mut)] // only assigned when the `cuda` feature is enabled
     let mut gpu_time: Option<std::time::Duration> = None;
 
     if mode == Mode::Cpu || mode == Mode::Both {
-        let cpu = run_cpu(iters)?;
+        let cpu = run_cpu(iters, log_height)?;
         cpu_time = Some(cpu.prove);
         println!(
             "CPU prove+verify:  {:>10.2?}   (execute {:.2?})",
@@ -90,7 +95,7 @@ fn main() -> Result<()> {
 
     #[cfg(feature = "cuda")]
     if mode == Mode::Gpu || mode == Mode::Both {
-        let gpu = run_gpu(iters)?;
+        let gpu = run_gpu(iters, log_height)?;
         gpu_time = Some(gpu.prove);
         println!(
             "GPU prove+verify:  {:>10.2?}   (execute {:.2?})",
@@ -113,12 +118,12 @@ fn timed<F: FnOnce() -> Result<()>>(f: F) -> Result<std::time::Duration> {
 }
 
 /// Run the full CPU pipeline and time execute + prove.
-fn run_cpu(iters: u32) -> Result<Times> {
+fn run_cpu(iters: u32, log_height: usize) -> Result<Times> {
     use openvm_poseidon2_circuit::Poseidon2Rv32CpuBuilder;
 
     let sdk =
         GenericSdk::<BabyBearPoseidon2CpuEngine, Poseidon2Rv32CpuBuilder>::new_without_transpiler(
-            app_config(),
+            app_config(log_height),
             AggregationSystemParams::default(),
         )?;
     let exe = Arc::new(VmExe::from_elf(
@@ -152,12 +157,12 @@ fn run_cpu(iters: u32) -> Result<Times> {
 
 #[cfg(feature = "cuda")]
 /// Run the full GPU pipeline and time execute + prove.
-fn run_gpu(iters: u32) -> Result<Times> {
+fn run_gpu(iters: u32, log_height: usize) -> Result<Times> {
     use openvm_cuda_backend::BabyBearPoseidon2GpuEngine as GpuEngine;
     use openvm_poseidon2_circuit::extension::cuda::Poseidon2Rv32GpuBuilder;
 
     let sdk = GenericSdk::<GpuEngine, Poseidon2Rv32GpuBuilder>::new_without_transpiler(
-        app_config(),
+        app_config(log_height),
         AggregationSystemParams::default(),
     )?;
     let exe = Arc::new(VmExe::from_elf(
