@@ -5,12 +5,13 @@
 //! execution still runs on the host and produces the same `Poseidon2PermuteRecord`s; only trace
 //! generation moves to the GPU.
 
-use std::mem::size_of;
-use std::sync::{Arc, Mutex};
+use std::{
+    mem::size_of,
+    sync::{Arc, Mutex},
+};
 
 use derive_new::new;
-use openvm_circuit::arch::DenseRecordArena;
-use openvm_circuit::utils::next_power_of_two_or_zero;
+use openvm_circuit::{arch::DenseRecordArena, utils::next_power_of_two_or_zero};
 use openvm_circuit_primitives::{
     bitwise_op_lookup::BitwiseOperationLookupChipGPU, var_range::VariableRangeCheckerChipGPU, Chip,
 };
@@ -21,8 +22,7 @@ use openvm_stark_backend::prover::AirProvingContext;
 
 use crate::{
     periphery::Poseidon2PeripheryCols,
-    permute::columns::NUM_POSEIDON2_PERMUTE_OP_COLS,
-    permute::trace::Poseidon2PermuteRecord,
+    permute::{columns::NUM_POSEIDON2_PERMUTE_OP_COLS, trace::Poseidon2PermuteRecord},
 };
 
 mod cuda_abi;
@@ -73,11 +73,10 @@ impl Chip<DenseRecordArena, GpuBackend> for Poseidon2PermuteChipGpu {
 
         // Buffer into which the adapter kernel writes the recomposed input words for each record;
         // consumed by the periphery chip (trace-generated after this chip).
-        let d_periphery_records =
-            Arc::new(DeviceBuffer::<F>::with_capacity_on(
-                num_records * POSEIDON2_WIDTH,
-                device_ctx,
-            ));
+        let d_periphery_records = Arc::new(DeviceBuffer::<F>::with_capacity_on(
+            num_records * POSEIDON2_WIDTH,
+            device_ctx,
+        ));
 
         unsafe {
             cuda_abi::poseidon2_permute::tracegen(
@@ -133,7 +132,8 @@ impl Chip<DenseRecordArena, GpuBackend> for Poseidon2PeripheryChipGpu {
         let trace_height = next_power_of_two_or_zero(num_records);
         let trace_width = Poseidon2PeripheryCols::<F>::width();
 
-        let d_trace = DeviceMatrix::<F>::with_capacity_on(trace_height, trace_width, &self.device_ctx);
+        let d_trace =
+            DeviceMatrix::<F>::with_capacity_on(trace_height, trace_width, &self.device_ctx);
         unsafe {
             cuda_abi::poseidon2_periphery::tracegen(
                 d_trace.buffer(),

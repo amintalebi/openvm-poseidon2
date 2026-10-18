@@ -24,8 +24,10 @@ use openvm_sdk::{
     config::{AggregationSystemParams, AppConfig},
     GenericSdk, StdIn, F,
 };
-use openvm_stark_sdk::config::baby_bear_poseidon2::BabyBearPoseidon2CpuEngine;
-use openvm_stark_sdk::config::{app_params_with_100_bits_security, MAX_APP_LOG_STACKED_HEIGHT};
+use openvm_stark_sdk::config::{
+    app_params_with_100_bits_security, baby_bear_poseidon2::BabyBearPoseidon2CpuEngine,
+    MAX_APP_LOG_STACKED_HEIGHT,
+};
 use openvm_transpiler::{transpiler::Transpiler, FromElf};
 
 fn main() -> Result<()> {
@@ -69,10 +71,11 @@ fn transpiler() -> Transpiler<F> {
 fn run_cpu() -> Result<()> {
     use openvm_poseidon2_circuit::Poseidon2Rv32CpuBuilder;
 
-    let sdk = GenericSdk::<BabyBearPoseidon2CpuEngine, Poseidon2Rv32CpuBuilder>::new_without_transpiler(
-        app_config(),
-        AggregationSystemParams::default(),
-    )?;
+    let sdk =
+        GenericSdk::<BabyBearPoseidon2CpuEngine, Poseidon2Rv32CpuBuilder>::new_without_transpiler(
+            app_config(),
+            AggregationSystemParams::default(),
+        )?;
     let elf = sdk.build(
         Default::default(),
         guest_dir(),

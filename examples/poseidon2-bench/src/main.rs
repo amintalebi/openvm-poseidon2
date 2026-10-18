@@ -8,9 +8,7 @@
 //!   cargo run --release -p poseidon2-bench -- [iters]                 # CPU only
 //!   cargo run --release -p poseidon2-bench --features cuda -- [iters]  # CPU + GPU comparison
 
-use std::path::PathBuf;
-use std::sync::Arc;
-use std::time::Instant;
+use std::{path::PathBuf, sync::Arc, time::Instant};
 
 use eyre::Result;
 use openvm_build::TargetFilter;
@@ -24,14 +22,15 @@ use openvm_sdk::{
     config::{AggregationSystemParams, AppConfig},
     GenericSdk, StdIn, F,
 };
-use openvm_stark_sdk::config::baby_bear_poseidon2::BabyBearPoseidon2CpuEngine;
-use openvm_stark_sdk::config::{app_params_with_100_bits_security, MAX_APP_LOG_STACKED_HEIGHT};
+use openvm_stark_sdk::config::{
+    app_params_with_100_bits_security, baby_bear_poseidon2::BabyBearPoseidon2CpuEngine,
+    MAX_APP_LOG_STACKED_HEIGHT,
+};
 use openvm_transpiler::{transpiler::Transpiler, FromElf};
 
 fn iters_from_args() -> u32 {
     std::env::args()
-        .skip(1)
-        .next()
+        .nth(1)
         .and_then(|s| s.parse().ok())
         .unwrap_or(20_000)
 }
@@ -80,7 +79,10 @@ fn main() -> Result<()> {
     #[cfg(not(feature = "cuda"))]
     {
         println!("--- results (cpu only; build with --features cuda for the GPU comparison) ---");
-        println!("CPU prove:  {:10.2?}   (execute {:.2?})", cpu.prove, cpu.execute);
+        println!(
+            "CPU prove:  {:10.2?}   (execute {:.2?})",
+            cpu.prove, cpu.execute
+        );
     }
 
     Ok(())
@@ -96,11 +98,13 @@ fn timed<F: FnOnce() -> Result<()>>(f: F) -> Result<std::time::Duration> {
 fn run_cpu(iters: u32) -> Result<Times> {
     use openvm_poseidon2_circuit::Poseidon2Rv32CpuBuilder;
 
-    let sdk = GenericSdk::<BabyBearPoseidon2CpuEngine, Poseidon2Rv32CpuBuilder>::new_without_transpiler(
-        app_config(),
-        AggregationSystemParams::default(),
-    )?;
-    let exe = Arc::new(VmExe::from_elf(sdk.build(
+    let sdk =
+        GenericSdk::<BabyBearPoseidon2CpuEngine, Poseidon2Rv32CpuBuilder>::new_without_transpiler(
+            app_config(),
+            AggregationSystemParams::default(),
+        )?;
+    let exe = Arc::new(VmExe::from_elf(
+        sdk.build(
             Default::default(),
             guest_dir(),
             &Some(TargetFilter {
@@ -108,7 +112,9 @@ fn run_cpu(iters: u32) -> Result<Times> {
                 kind: "bin".to_string(),
             }),
             None,
-        )?, transpiler())?);
+        )?,
+        transpiler(),
+    )?);
 
     let execute = timed(|| {
         sdk.execute(exe.clone(), stdin_for(iters))?;
@@ -136,7 +142,8 @@ fn run_gpu(iters: u32) -> Result<Times> {
         app_config(),
         AggregationSystemParams::default(),
     )?;
-    let exe = Arc::new(VmExe::from_elf(sdk.build(
+    let exe = Arc::new(VmExe::from_elf(
+        sdk.build(
             Default::default(),
             guest_dir(),
             &Some(TargetFilter {
@@ -144,7 +151,9 @@ fn run_gpu(iters: u32) -> Result<Times> {
                 kind: "bin".to_string(),
             }),
             None,
-        )?, transpiler())?);
+        )?,
+        transpiler(),
+    )?);
 
     let execute = timed(|| {
         sdk.execute(exe.clone(), stdin_for(iters))?;

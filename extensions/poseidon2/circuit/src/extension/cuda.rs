@@ -1,6 +1,7 @@
 //! GPU (`GpuBabyBearPoseidon2Engine`) prover extension and VM builder for the Poseidon2 extension.
 //!
-//! This is the CUDA counterpart of [`super::Poseidon2CpuProverExt`] / [`super::Poseidon2Rv32CpuBuilder`].
+//! This is the CUDA counterpart of [`super::Poseidon2CpuProverExt`] /
+//! [`super::Poseidon2Rv32CpuBuilder`].
 
 use std::sync::Arc;
 
@@ -10,13 +11,15 @@ use openvm_circuit::{
         VmChipComplex, VmProverExtension,
     },
     system::cuda::{
-        extensions::{get_inventory_range_checker, get_or_create_bitwise_op_lookup, SystemGpuBuilder},
+        extensions::{
+            get_inventory_range_checker, get_or_create_bitwise_op_lookup, SystemGpuBuilder,
+        },
         SystemChipInventoryGPU,
     },
 };
 use openvm_cuda_backend::{BabyBearPoseidon2GpuEngine as GpuBabyBearPoseidon2Engine, GpuBackend};
-use openvm_rv32im_circuit::Rv32ImGpuProverExt;
 use openvm_poseidon2_air::p3_baby_bear::BabyBear;
+use openvm_rv32im_circuit::Rv32ImGpuProverExt;
 use openvm_stark_sdk::config::baby_bear_poseidon2::BabyBearPoseidon2Config;
 
 use super::*;
@@ -48,8 +51,7 @@ impl VmProverExtension<GpuBabyBearPoseidon2Engine, DenseRecordArena, Poseidon2>
         // chip's kernel records the input states the periphery chip then consumes.
         inventory.next_air::<Poseidon2PeripheryAir<BabyBear>>()?;
         let shared_records: SharedPoseidon2RecordsGpu = Default::default();
-        let periphery =
-            Poseidon2PeripheryChipGpu::new(shared_records.clone(), device_ctx);
+        let periphery = Poseidon2PeripheryChipGpu::new(shared_records.clone(), device_ctx);
         inventory.add_periphery_chip(Arc::new(periphery));
 
         inventory.next_air::<Poseidon2PermuteAir>()?;
