@@ -142,16 +142,28 @@ cargo run --profile fast -p poseidon2-example --features cuda -- --gpu
 A CPU-vs-GPU proving benchmark:
 
 ```bash
-cargo run --release -p poseidon2-bench -- [iters]                 # CPU only
-cargo run --release -p poseidon2-bench --features cuda -- [iters]  # CPU + GPU
+cargo run --profile fast -p poseidon2-bench -- [iters]                       # CPU only
+cargo run --profile fast -p poseidon2-bench --features cuda -- [iters]        # CPU + GPU
+cargo run --profile fast -p poseidon2-bench --features cuda -- --gpu 900000   # GPU only
 ```
+
+Flags: `--cpu` / `--gpu` run one backend only (`--gpu` needs `--features cuda`);
+`--log-height=N` sets the app log stacked height (5–24, default 24, the 100-bit security cap).
+`iters` defaults to 20,000. The results below use `--profile fast` (opt-level 1); `--release` will
+give different, faster CPU times. When building the `cuda` feature over SSH, make sure `nvcc` is on
+`PATH` (e.g. `export PATH=/usr/local/cuda/bin:$PATH`), or the CUDA kernels are skipped and linking
+fails with undefined `*_tracegen` symbols.
 
 ### Benchmark results
 
-Measured with `examples/poseidon2-bench` on a Nebius `1gpu-24vcpu-218gb` instance. A guest
+Measured with `examples/poseidon2-bench` (`--profile fast`) on a Nebius `1gpu-24vcpu-218gb` instance. A guest
 performs `iters` Poseidon2 permutations (`PERMUTE` custom instructions); reported time is
 `sdk.prove(...)` + `verify_proof(...)` (proof generation + verification). The GPU proof **verifies**
-at every size, confirming the CUDA tracegen matches the CPU tracegen column-for-column.
+at every size, which shows the CUDA trace satisfies every AIR constraint. It does not by itself show
+the GPU trace is identical to the CPU trace; that needs a direct trace comparison.
+
+One-time app + aggregation keygen (~0.35–0.4 s on both backends) is done before the timer and
+reported separately.
 
 **Hardware**
 
@@ -164,17 +176,17 @@ at every size, confirming the CUDA tracegen matches the CPU tracegen column-for-
 
 | iters | CPU | GPU | speedup |
 |------:|----:|----:|--------:|
-| 1,000 | 30.08 s | 6.39 s | 4.71× |
-| 5,000 | 34.48 s | 6.29 s | 5.48× |
-| 30,000 | 72.55 s | 6.74 s | 10.76× |
-| 60,000 | 119.30 s | 7.42 s | 16.07× |
-| 120,000 | 189.91 s | 8.67 s | 21.91× |
-| 900,000 (GPU only) | — | 24.03 s | (at 2^24 height ceiling) |
+| 1,000 | 28.27 s | 5.98 s | 4.73× |
+| 5,000 | 32.30 s | 5.97 s | 5.41× |
+| 30,000 | 69.83 s | 6.45 s | 10.83× |
+| 60,000 | 113.58 s | 7.19 s | 15.80× |
+| 120,000 | 179.85 s | 8.55 s | 21.02× |
+| 900,000 (GPU only) | — | 25.49 s | (at 2^24 height ceiling) |
 
 The GPU advantage grows monotonically: CPU cost tracks the padded (power-of-two) trace height and is
 roughly linear in it (up to the VM's single-app ceiling of `2^24` rows, set by
 `MAX_APP_LOG_STACKED_HEIGHT = 24` for the 100-bit soundness target), while the GPU stays near-flat
-across height boundaries — reaching the 2^24 ceiling at 900k iters in ~24 s.
+across height boundaries — reaching the 2^24 ceiling at 900k iters in ~25 s.
 
 Single-proof GPU utilization is low (~6%): OpenVM proving is dominated by memory/launch-bound
 tracegen and logUp/sumcheck rather than raw FLOPS, and a single proof is soundness-capped at 2^24.

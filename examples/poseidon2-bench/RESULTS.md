@@ -11,9 +11,15 @@ backend (`Poseidon2Rv32CpuBuilder`) and the CUDA backend (`Poseidon2Rv32GpuBuild
   with `iters`.
 - **What is timed**: `sdk.prove(...)` **plus** `verify_proof(...)` (i.e. proof generation + the
   verifier; verification is negligible vs. proving). Reported via `examples/poseidon2-bench`.
+- **Keygen is excluded**: the SDK generates the app + aggregation keys lazily on the first
+  `sdk.prove`, so the bench generates them first and reports `keygen` separately. It is small
+  (~0.35–0.4 s on both backends), so the ~28 s CPU / ~6 s GPU floor at small `iters` is proving
+  cost, not keygen.
 - **Both backends prove the *same* guest and the timings are wall-clock**.
-- The GPU number also confirms end-to-end correctness: the GPU proof must verify, which it does
-  (same AIR constraints, byte-identical trace columns to the CPU tracegen).
+- The GPU proof must verify, which it does at every size. This shows the GPU trace satisfies the
+  same AIR constraints. It does **not** show the GPU trace is byte-identical to the CPU trace
+  (padding rows or auxiliary columns could differ and still satisfy the constraints); that needs a
+  direct CPU-vs-GPU trace comparison test.
 
 ## Hardware / environment
 
@@ -22,7 +28,7 @@ backend (`Poseidon2Rv32CpuBuilder`) and the CUDA backend (`Poseidon2Rv32GpuBuild
 | GPU | NVIDIA RTX PRO 6000 Blackwell Server Edition (sm_120, 97 GB) |
 | Driver / toolkit | CUDA 13.0, nvcc 13.0 |
 | CPU | 24 vCPU (Nebius `1gpu-24vcpu-218gb`) |
-| Build | OpenVM monorepo v2.0.2 + this extension, `cargo build --release`/`fast` with `--features cuda` |
+| Build | OpenVM monorepo v2.0.2 + this extension, `--profile fast` with `--features cuda` |
 
 ## Results
 
@@ -31,24 +37,26 @@ Build profile: `--profile fast` (opt-level 1) for both backends; CUDA kernels ar
 
 | iters | CPU prove+verify | GPU prove+verify | speedup |
 |------:|-----------------:|-----------------:|--------:|
-| 1,000 | 30.08 s | 6.39 s | 4.71× |
-| 5,000 | 34.48 s | 6.29 s | 5.48× |
-| 30,000 | 72.55 s | 6.74 s | 10.76× |
-| 60,000 | 119.30 s | 7.42 s | 16.07× |
-| 120,000 | 189.91 s | 8.67 s | 21.91× |
+| 1,000 | 28.27 s | 5.98 s | 4.73× |
+| 5,000 | 32.30 s | 5.97 s | 5.41× |
+| 30,000 | 69.83 s | 6.45 s | 10.83× |
+| 60,000 | 113.58 s | 7.19 s | 15.80× |
+| 120,000 | 179.85 s | 8.55 s | 21.02× |
 
 Grounding on trace height: the VM's single-app proof is hard-capped at `MAX_APP_LOG_STACKED_HEIGHT = 24`
 (2^24 rows) for the 100-bit soundness guarantee. The GPU reaches that ceiling without breaking a sweat:
 
 | iters (GPU only) | approx. height | GPU prove+verify |
 |-----------------:|---------------:|-----------------:|
-| 250,000 | 2^22 | 10.77 s |
-| 500,000 | 2^23 | 16.39 s |
-| 900,000 | 2^24 (max) | 24.03 s |
+| 250,000 | 2^22 | 11.26 s |
+| 500,000 | 2^23 | 17.49 s |
+| 900,000 | 2^24 (max) | 25.49 s |
 
 CPU does not survive the climb: a CPU `iters=500_000` run (≈2^23, just 2× the 120k point) was still
-running past **53 minutes** when the harness timed out, versus **16.4 s** on the GPU at the same
-height — i.e. the CPU-vs-GPU gap is **≥ ~190×** at this size, vs 21.9× at 120k iters.
+running past **53 minutes** when the harness timed out, versus **17.5 s** on the GPU at the same
+height — i.e. the CPU-vs-GPU gap is **≥ ~180×** at this size, vs 21.0× at 120k iters. (The CPU
+500k run is from the earlier bench version, which counted keygen; at ~0.4 s that doesn't matter
+here.)
 
 ### Why single-proof GPU utilization is low (and how to raise it)
 
@@ -68,9 +76,9 @@ i.e. 4 proofs finish in 16.3 s vs ~50 s serial → **~3× prover throughput**, w
 
 Notes:
 
-- The GPU proof **verifies** at every size, confirming the CUDA tracegen produces byte-identical
-  trace columns to the CPU path.
+- The GPU proof **verifies** at every size (constraint-satisfying trace; see the Method note on
+  why this is not a trace-equality check).
 - CPU prove time is flat between `iters=1000` and `iters=5000` because trace height is padded up to
   a power of two; proof cost is dominated by that padded height, so adding permutes doesn't move the
   needle until it crosses the next height boundary. Once it does (between 5000 and 30000) the CPU
-  cost roughly doubles while the GPU stays flat, so the speedup widens (5.5× → 10.8×).
+  cost roughly doubles while the GPU stays flat, so the speedup widens (5.4× → 10.8×).
