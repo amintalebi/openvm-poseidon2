@@ -101,14 +101,6 @@ OpenVM had openvm-fv and still had zkSecurity
 much narrower and cheaper review is possible: an expert reads only the theorem statements and the
 spec, not the circuit.
 
-## Funding
-
-- The Ethereum Foundation
-  [funds zkVM formal verification](https://pq.ethereum.org/blog/formal-verification-zkevm/) and paid
-  for OpenVM's own Lean work. A small grant for this is plausible.
-- Proposing the extension upstream to OpenVM would put it under their verification and audit
-  process.
-
 ## References
 
 - [openvm-fv](https://github.com/openvm-org/openvm-fv): Lean proofs for OpenVM RV32IM, Keccak and SHA-2
