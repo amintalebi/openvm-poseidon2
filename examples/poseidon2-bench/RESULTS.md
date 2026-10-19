@@ -46,6 +46,10 @@ Grounding on trace height: the VM's single-app proof is hard-capped at `MAX_APP_
 | 500,000 | 2^23 | 16.39 s |
 | 900,000 | 2^24 (max) | 24.03 s |
 
+CPU does not survive the climb: a CPU `iters=500_000` run (≈2^23, just 2× the 120k point) was still
+running past **53 minutes** when the harness timed out, versus **16.4 s** on the GPU at the same
+height — i.e. the CPU-vs-GPU gap is **≥ ~190×** at this size, vs 21.9× at 120k iters.
+
 ### Why single-proof GPU utilization is low (and how to raise it)
 
 `nvidia-smi` reports only ~6% util during a single proof. That is not the GPU being idle-limited by
