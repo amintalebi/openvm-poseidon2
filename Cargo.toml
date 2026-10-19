@@ -14,6 +14,7 @@ members = [
   "extensions/poseidon2/circuit",
   "guest-libs/poseidon2",
   "examples/poseidon2",
+  "examples/poseidon2-bench",
 ]
 
 [workspace.dependencies]
@@ -39,6 +40,11 @@ openvm-transpiler = { version = "2.0.2", default-features = false }
 openvm-poseidon2-circuit = { version = "2.0.2", path = "extensions/poseidon2/circuit", default-features = false }
 openvm-poseidon2-guest = { version = "2.0.2", path = "extensions/poseidon2/guest", default-features = false }
 openvm-poseidon2-transpiler = { version = "2.0.2", path = "extensions/poseidon2/transpiler", default-features = false }
+
+# CUDA prover support (enabled via the `cuda` feature; requires nvcc)
+openvm-cuda-common = { version = "2.0.1", default-features = false }
+openvm-cuda-builder = { version = "2.0.1", default-features = false }
+openvm-cuda-backend = { version = "2.0.1", default-features = false }
 
 # third-party
 dashmap = "6.1.0"

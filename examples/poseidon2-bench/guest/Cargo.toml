@@ -1,0 +1,17 @@
+[workspace]
+[package]
+name = "poseidon2-bench-guest"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies]
+openvm = "2.0.2"
+openvm-poseidon2 = { path = "../../../guest-libs/poseidon2" }
+
+[features]
+default = []
+std = ["openvm/std"]
+
+[profile.release]
+panic = "abort"
+lto = "thin"

@@ -116,6 +116,84 @@ cargo run --profile fast -p poseidon2-example
 Builds the guest in `examples/poseidon2/guest`, executes it (it asserts on its own hashes), then
 proves and verifies the whole execution.
 
+## CUDA (GPU) proving
+
+The extension ships a CUDA prover extension (`Poseidon2GpuProverExt`) and GPU builder
+(`Poseidon2Rv32GpuBuilder`) built on OpenVM's CUDA backend. The two `PERMUTE` AIRs host a
+device-side tracegen:
+
+- `Poseidon2PermuteChipGpu` — the adapter AIR: recomposes the preimage, computes the permutation
+  output on-GPU, and fills the memory-aux, canonicity, and bitwise-lookup columns.
+- `Poseidon2PeripheryChipGpu` — the periphery AIR: expands each (input → output) pair into the full
+  `Poseidon2SubCols` subtrace and stamps the multiplicity.
+
+CUDA kernels are compiled with `openvm-cuda-builder` against the shared headers from
+`openvm-poseidon2-air` / `openvm-circuit-primitives` / `openvm-circuit`. Because the published
+CUDA crates only build inside the [OpenVM monorepo](https://github.com/openvm-org/openvm) (their
+`build.rs` reference monorepo-relative include paths), GPU proving is exercised by integrating this
+extension into that monorepo and building with the `cuda` feature (see `examples/poseidon2-bench`).
+
+Example, with a GPU + nvcc available:
+
+```bash
+cargo run --profile fast -p poseidon2-example --features cuda -- --gpu
+```
+
+A CPU-vs-GPU proving benchmark:
+
+```bash
+cargo run --profile fast -p poseidon2-bench -- [iters]                       # CPU only
+cargo run --profile fast -p poseidon2-bench --features cuda -- [iters]        # CPU + GPU
+cargo run --profile fast -p poseidon2-bench --features cuda -- --gpu 900000   # GPU only
+```
+
+Flags: `--cpu` / `--gpu` run one backend only (`--gpu` needs `--features cuda`);
+`--log-height=N` sets the app log stacked height (5–24, default 24, the 100-bit security cap).
+`iters` defaults to 20,000. The results below use `--profile fast` (opt-level 1); `--release` will
+give different, faster CPU times. When building the `cuda` feature over SSH, make sure `nvcc` is on
+`PATH` (e.g. `export PATH=/usr/local/cuda/bin:$PATH`), or the CUDA kernels are skipped and linking
+fails with undefined `*_tracegen` symbols.
+
+### Benchmark results
+
+Measured with `examples/poseidon2-bench` (`--profile fast`) on a Nebius `1gpu-24vcpu-218gb` instance. A guest
+performs `iters` Poseidon2 permutations (`PERMUTE` custom instructions); reported time is
+`sdk.prove(...)` + `verify_proof(...)` (proof generation + verification). The GPU proof **verifies**
+at every size, which shows the CUDA trace satisfies every AIR constraint. It does not by itself show
+the GPU trace is identical to the CPU trace; that needs a direct trace comparison.
+
+One-time app + aggregation keygen (~0.35–0.4 s on both backends) is done before the timer and
+reported separately.
+
+**Hardware**
+
+| | |
+|---|---|
+| CPU | Intel Xeon 6776P, 24 cores, 218 GiB RAM |
+| GPU | NVIDIA RTX PRO 6000 Blackwell Server Edition (sm_120), 97 GB, CUDA 13.0 |
+
+**Times (prove + verify):**
+
+| iters | CPU | GPU | speedup |
+|------:|----:|----:|--------:|
+| 1,000 | 28.27 s | 5.98 s | 4.73× |
+| 5,000 | 32.30 s | 5.97 s | 5.41× |
+| 30,000 | 69.83 s | 6.45 s | 10.83× |
+| 60,000 | 113.58 s | 7.19 s | 15.80× |
+| 120,000 | 179.85 s | 8.55 s | 21.02× |
+| 900,000 (GPU only) | — | 25.49 s | (at 2^24 height ceiling) |
+
+The GPU advantage grows monotonically: CPU cost tracks the padded (power-of-two) trace height and is
+roughly linear in it (up to the VM's single-app ceiling of `2^24` rows, set by
+`MAX_APP_LOG_STACKED_HEIGHT = 24` for the 100-bit soundness target), while the GPU stays near-flat
+across height boundaries — reaching the 2^24 ceiling at 900k iters in ~25 s.
+
+Single-proof GPU utilization is low (~6%): OpenVM proving is dominated by memory/launch-bound
+tracegen and logUp/sumcheck rather than raw FLOPS, and a single proof is soundness-capped at 2^24.
+To use the GPU fully, **batch proofs in parallel**: 4 concurrent proofs of a 2^22-height workload
+finished in 16.3 s vs ~50 s serial (peak GPU util 100%, ~3× prover throughput). Details in
+`examples/poseidon2-bench/RESULTS.md`.
+
 ## Hashing
 
 The sponge operates on **canonical field elements** (each `< 0x78000001`):
@@ -134,6 +212,6 @@ See `AGENTS.md`.
 
 ## TODO
 
-1. **A CUDA prover extension.** `Poseidon2GpuProverExt` does not exist. GPU users get a clear
-   error. This work must come before the extension can go into `standard()`.
-2. **A benchmark**
+1. **CUDA prover extension.** `Poseidon2GpuProverExt` and `Poseidon2Rv32GpuBuilder` now exist
+   (see "CUDA (GPU) proving"); they lift the old "GPU users get a clear error" limitation.
+2. **A benchmark.** `examples/poseidon2-bench` provides a CPU-vs-GPU proving comparison.

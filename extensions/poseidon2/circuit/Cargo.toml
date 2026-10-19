@@ -13,6 +13,8 @@ license.workspace = true
 openvm-stark-backend = { workspace = true }
 openvm-cpu-backend = { workspace = true }
 openvm-stark-sdk = { workspace = true, features = ["cpu-backend"] }
+openvm-cuda-backend = { workspace = true, optional = true }
+openvm-cuda-common = { workspace = true, optional = true }
 openvm-circuit-primitives = { workspace = true }
 openvm-circuit-primitives-derive = { workspace = true }
 openvm-circuit = { workspace = true }
@@ -36,6 +38,9 @@ strum.workspace = true
 openvm-stark-sdk = { workspace = true, features = ["cpu-backend"] }
 openvm-circuit = { workspace = true, features = ["test-utils"] }
 
+[build-dependencies]
+openvm-cuda-builder = { workspace = true, optional = true }
+
 [features]
 default = ["parallel", "jemalloc"]
 parallel = ["openvm-circuit/parallel"]
@@ -46,11 +51,12 @@ aot = ["openvm-circuit/aot", "openvm-rv32im-circuit/aot"]
 mimalloc = ["openvm-circuit/mimalloc"]
 jemalloc = ["openvm-circuit/jemalloc"]
 jemalloc-prof = ["openvm-circuit/jemalloc-prof"]
-# NOTE: there is no Poseidon2 CUDA prover extension yet, so `cuda` here only forwards to the
-# dependencies whose CUDA code paths this crate compiles against (it depends on
-# openvm-rv32im-circuit for the shared memory adapter helpers). The `dep:openvm-cuda-*` entries
-# that keccak256/sha2 carry belong here once a `Poseidon2GpuProverExt` lands.
+# CUDA prover support: compiles this crate's tracegen kernels and wires in the GPU engine. The
+# `Poseidon2GpuProverExt` / `Poseidon2Rv32GpuBuilder` in `extension::cuda` are gated behind this.
 cuda = [
+    "dep:openvm-cuda-builder",
+    "dep:openvm-cuda-common",
+    "dep:openvm-cuda-backend",
     "openvm-circuit-primitives/cuda",
     "openvm-circuit/cuda",
     "openvm-rv32im-circuit/cuda",

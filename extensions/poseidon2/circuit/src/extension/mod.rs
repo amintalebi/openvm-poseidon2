@@ -1,6 +1,10 @@
 #[cfg(test)]
 pub mod tests;
 
+/// GPU (`GpuBabyBearPoseidon2Engine`) prover extension and builder.
+#[cfg(feature = "cuda")]
+pub mod cuda;
+
 use std::{result::Result, sync::Arc};
 
 use derive_more::derive::From;
